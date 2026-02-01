@@ -996,7 +996,16 @@ where
         }
 
         ui.input(|i| {
-            let delta = i.zoom_delta();
+            let mut delta = i.zoom_delta();
+
+            // Use global scroll if hovered
+            if delta == 1. && resp.hovered() {
+                let scroll_delta = i.smooth_scroll_delta.y;
+                if scroll_delta != 0. {
+                    delta = 1. + (scroll_delta / 200.); // map to zoom
+                }
+            }
+
             if delta == 1. {
                 return;
             }

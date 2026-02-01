@@ -1,5 +1,5 @@
 mod displays;
-mod displays_default;
+pub mod displays_default;
 pub(crate) mod drawer;
 
 pub use displays::{DisplayEdge, DisplayNode};

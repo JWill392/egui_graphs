@@ -404,11 +404,12 @@ impl DefaultEdgeShape {
             .curved((start, end), self.curve_size, self.order)
             .build();
 
-        let curved_shape = match curved_shapes.first() {
-            Some(Shape::CubicBezier(curve)) => curve.clone(),
+        match curved_shapes.first() {
+            Some(Shape::CubicBezier(curve)) => is_point_on_curve(pos, &curve, self.width),
+            Some(Shape::LineSegment { points: [start, end], ..}) =>
+                distance_segment_to_point(*start, *end, pos) <= self.width,
             _ => panic!("invalid shape type"),
-        };
-        is_point_on_curve(pos, &curved_shape, self.width)
+        }
     }
 }
 
