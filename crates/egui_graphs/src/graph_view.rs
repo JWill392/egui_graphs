@@ -220,6 +220,12 @@ pub struct GraphView<
 
     custom_id: Option<String>,
 
+    /// Optional hook to draw a background behind nodes/edges.
+    ///
+    /// Called every frame, after pan/zoom is updated and after widget-local -> screen transform is applied
+    /// (i.e. `DrawContext.meta` is ready to use for canvas_to_screen conversions).
+    background: Option<Box<dyn FnMut(&DrawContext, Rect) + 'a>>,
+
     #[cfg(feature = "events")]
     events_sink: Option<&'a dyn EventSink>,
 
@@ -309,17 +315,21 @@ where
         let mut meta_draw = view.frame.clone();
         meta_draw.pan += resp.rect.left_top().to_vec2();
 
-        Drawer::<N, E, Ty, Ix, Nd, Ed, S, L>::new(
-            self.g,
-            &DrawContext {
-                ctx: ui.ctx(),
-                painter: &p,
-                meta: &meta_draw,
-                is_directed: self.g.is_directed(),
-                style: &self.settings_style,
-            },
-        )
-        .draw();
+        let draw_ctx = DrawContext {
+            ctx: ui.ctx(),
+            painter: &p,
+            meta: &meta_draw,
+            is_directed: self.g.is_directed(),
+            style: &self.settings_style,
+        };
+
+        // Background hook draws *behind* nodes/edges and uses the same pan/zoom transform.
+        if let Some(bg) = self.background.as_mut() {
+            (bg)(&draw_ctx, resp.rect);
+        }
+        
+        Drawer::<N, E, Ty, Ix, Nd, Ed, S, L>::new(self.g, &draw_ctx).draw();
+
         let draw_ms = t_draw0.elapsed().as_secs_f32() * 1000.0;
 
         view.frame.last_step_time_ms = step_ms;
@@ -349,8 +359,6 @@ where
     S: LayoutState,
     L: Layout<S>,
 {
-    /// Creates a new `GraphView` widget with default navigation and interactions settings.
-    /// To customize navigation and interactions use `with_interactions` and `with_navigations` methods.
     pub fn new(g: &'a mut Graph<N, E, Ty, Ix, Dn, De>) -> Self {
         Self {
             g,
@@ -361,11 +369,25 @@ where
 
             custom_id: None,
 
+            background: None,
+
             #[cfg(feature = "events")]
             events_sink: Option::default(),
 
             _marker: PhantomData,
         }
+    }
+
+    /// Draw a custom background behind the graph content.
+    ///
+    /// The callback receives the same `DrawContext` used for nodes/edges, so it can use
+    /// `ctx.meta` for correct pan/zoom (canvas → screen) transforms.
+    pub fn with_background(
+        mut self,
+        background: impl FnMut(&DrawContext, Rect) + 'a,
+    ) -> Self {
+        self.background = Some(Box::new(background));
+        self
     }
 
     #[cfg(feature = "events")]
