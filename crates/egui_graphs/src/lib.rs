@@ -3,7 +3,7 @@ mod elements;
 mod graph;
 mod graph_view;
 mod helpers;
-mod layouts;
+pub mod layouts;
 mod metadata;
 mod settings;
 

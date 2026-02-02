@@ -1010,7 +1010,7 @@ where
                 return;
             }
 
-            let step = self.settings_navigation.zoom_speed * (delta - 1.).signum();
+            let step = self.settings_navigation.zoom_speed * (delta - 1.);
             let local_center = i.pointer.hover_pos().map(|p| self.local_pos(resp, p));
             // Use a local rect (origin at 0,0) for zoom center math.
             let local_rect = Rect::from_min_size(Pos2::ZERO, resp.rect.size());
